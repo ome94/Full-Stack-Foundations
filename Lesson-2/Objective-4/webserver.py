@@ -30,9 +30,9 @@ class webServerHandler(BaseHTTPRequestHandler):
                 restaurants_list += f'\
                 <div>\
                     <h2>{restaurant.name}</h2>\
-                    <a href="{host}/{restaurant.id}/edit">Edit</a>\
-                    <a href="{host}/{restaurant.id}/delete">Delete</a>\
-                </divi>\
+                    <a href="{host}/restaurant/{restaurant.id}/edit">Edit</a>\
+                    <a href="{host}/restaurant/{restaurant.id}/delete">Delete</a>\
+                </div>\
                 <hr>\
                 '
 
@@ -41,16 +41,21 @@ class webServerHandler(BaseHTTPRequestHandler):
         elif self.path == ('/restaurant/new'):
             response = self.send_ok('new.html')
 
-            self.wfile.write(response.encode())
+            self.wfile.write(response.format(host=host).encode())
+
+        elif self.path.startswith('/restaurant') and self.path.endswith('/edit'):
+            response = self.send_ok('edit.html')
+            restaurant_id = int(self.path[1:].split('/')[1])
+            restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
+
+            self.wfile.write(response.format(host=host, restaurant=restaurant).encode())
 
         else:
             self.send_error(404, 'File Not Found: %s' % self.path)
 
     def do_POST(self):
         if self.path == ('/restaurant/new'):
-            clength = int(self.headers.get('content-length', 0))
-            data = self.rfile.read(clength).decode()
-            form = parse_qs(data)
+            form = self.parse_form()
             
             restaurant_name = form.get('restaurant-name', [''])[0]
             if restaurant_name != ['']:
@@ -62,6 +67,23 @@ class webServerHandler(BaseHTTPRequestHandler):
             self.send_header('Location', '/restaurants')
             self.end_headers()
             self.wfile.write('New restaurant {} added successfully'.format(new_restaurant).encode())
+
+        elif self.path.startswith('/restaurant') and self.path.endswith('/edit'):
+            form = self.parse_form()
+            new_name = form.get('restaurant-name', [''])[0]
+            restaurant_id = int(self.path[1:].split('/')[1])
+            
+            restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
+            old_name = restaurant.name
+            restaurant.name = new_name
+            session.add(restaurant)
+            session.commit()
+
+            self.send_response(303)
+            self.send_header('Location', '/restaurants')
+            self.end_headers()
+
+            self.wfile.write('{old_name} updated, now {new_name}'.format(old_name=old_name, new_name=new_name).encode())
 
         else:
             self.send_error(400, 'You posted your request to a wrong address.')
@@ -76,6 +98,13 @@ class webServerHandler(BaseHTTPRequestHandler):
                     page = html.read()
 
             return page
+
+    def parse_form(self):
+        clength = int(self.headers.get('content-length', 0))
+        data = self.rfile.read(clength).decode()
+        form = parse_qs(data)
+        
+        return form
 
 def main():
     try:
