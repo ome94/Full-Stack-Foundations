@@ -1,5 +1,7 @@
+from asyncore import read
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import cgi
+import os
 
 # import CRUD Operations from Lesson 1
 from database_setup import Base, Restaurant, MenuItem
@@ -12,28 +14,28 @@ Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
+__dirname__ = os.path.dirname(__file__)
 
 class webServerHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
-        try:
-            if self.path.endswith("/restaurants"):
-                restaurants = session.query(Restaurant).all()
-                output = ""
-                self.send_response(200)
-                self.send_header('Content-type', 'text/html')
-                self.end_headers()
-                output += "<html><body>"
-                for restaurant in restaurants:
-                    output += restaurant.name
-                    output += "</br></br></br>"
+        if self.path == '/restaurants':
+            self.send_response(200)
+            self.send_header('content-type', 'text/html; charset=utf-8')
+            self.end_headers()
 
-                output += "</body></html>"
-                self.wfile.write(output)
-                return
-        except IOError:
+            restaurants = session.query(Restaurant).all()
+            with open(os.path.join(__dirname__, './index.html')) as page:
+                res = page.read()
+
+            res_list = ''
+            for restaurant in restaurants:
+                res_list += f'<li>{restaurant.name}</li>'
+
+            self.wfile.write(res.format(res_list).encode())
+
+        else:
             self.send_error(404, 'File Not Found: %s' % self.path)
-
 
 def main():
     try:
