@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit {{ item.name }} </title>
+</head>
+<html>
+
+<body>
+
+<!-- INSERT YOUR CODE HERE -->
+<form action="{{ url_for('editMenuItem', restaurant_id=restaurant_id, menu_id=menu_id) }}"
+    method="post">
+    <fieldset>
+        <legend>Edit Menu Info</legend>
+        <label for="menu-name">Menu Name</label>
+        <input type="text" id="menu-name" placeholder="{{ item.name }}" name="name">
+        <button type="submit">Update</button>
+        <a href="{{ url_for('restaurantMenu') }}">
+            <button>Cancel</button>
+        </a>
+    </fieldset>
+</form>
+
+</body>
+
+</html>
